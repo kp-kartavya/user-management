@@ -11,22 +11,34 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "country_master")
-public class Country {
+@Table(name = "initiator_temp")
+public class InitiatorTemp {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name = "country_pk")
-	private Long countryPk;
-	@Column(name = "country_name", nullable = false, unique = true)
-	private String countryName;
+	@Column(name = "temp_pk")
+	private Long tempPk;
+	@Column(name = "request_type")
+	private String requestType;
 	@CreationTimestamp
-	@Column(name = "created_date", nullable = false)
+	@Column(name = "created_date")
 	private LocalDateTime createdDate;
+	@Column(name = "status")
+	private String status;
+	@Column(name = "remarks")
+	private String remarks;
+	@Column(name = "modified_by")
+	private String modifiedBy;
+	@Column(name = "created_by")
+	private String createdBy;
+	@Column(name = "created_user")
+	private String createdUser;
 }

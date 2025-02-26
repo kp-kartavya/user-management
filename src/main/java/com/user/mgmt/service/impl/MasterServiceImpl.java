@@ -11,11 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.user.mgmt.dto.CountryDto;
+import com.user.mgmt.dto.RoleDto;
 import com.user.mgmt.dto.StateDto;
 import com.user.mgmt.entity.Country;
+import com.user.mgmt.entity.Role;
 import com.user.mgmt.entity.State;
 import com.user.mgmt.exception.ResourceNotFoundException;
 import com.user.mgmt.repo.CountryRepo;
+import com.user.mgmt.repo.RoleRepo;
 import com.user.mgmt.repo.StateRepo;
 import com.user.mgmt.service.MasterService;
 
@@ -24,11 +27,13 @@ public class MasterServiceImpl implements MasterService {
 	private static final Logger log = LoggerFactory.getLogger(MasterServiceImpl.class);
 
 	@Autowired
+	private ModelMapper modelMapper;
+	@Autowired
 	private CountryRepo countryRepo;
 	@Autowired
 	private StateRepo stateRepo;
 	@Autowired
-	private ModelMapper modelMapper;
+	private RoleRepo roleRepo;
 
 	@Override
 	public List<CountryDto> saveAllCountry(List<CountryDto> countryDto) {
@@ -48,6 +53,13 @@ public class MasterServiceImpl implements MasterService {
 		List<Country> c = countryRepo.findAll();
 		return c.stream()
 				.collect(Collectors.toMap(country -> String.valueOf(country.getCountryPk()), Country::getCountryName));
+	}
+
+	@Override
+	public String getCountryById(Long countryPk) {
+		Country country = countryRepo.findById(countryPk)
+				.orElseThrow(() -> new ResourceNotFoundException("State", "ID", countryPk.toString()));
+		return country.getCountryName();
 	}
 
 	// STATE SERVICE IMPL
@@ -75,6 +87,27 @@ public class MasterServiceImpl implements MasterService {
 		List<State> state = stateRepo.findByCountryFk(country.getCountryPk()).orElseThrow(
 				() -> new ResourceNotFoundException("State", "Country_FK", country.getCountryPk().toString()));
 		return state.stream().collect(Collectors.toMap(s -> String.valueOf(s.getStatePk()), State::getStateName));
+	}
+
+	@Override
+	public String getStateById(Long statePk) {
+		State state = stateRepo.findById(statePk)
+				.orElseThrow(() -> new ResourceNotFoundException("State", "ID", statePk.toString()));
+		return state.getStateName();
+	}
+
+	// ROLE SERVICE IMPL
+	@Override
+	public List<RoleDto> saveRoles(List<RoleDto> roleDto) {
+		List<Role> role = roleDto.stream().map(dto -> modelMapper.map(dto, Role.class))
+				.filter(r -> !roleRepo.existsByRoleName(r.getRoleName())).collect(Collectors.toList());
+		return roleRepo.saveAll(role).stream().map(s -> modelMapper.map(s, RoleDto.class)).collect(Collectors.toList());
+	}
+
+	@Override
+	public Map<String, String> fetchRoles() {
+		List<Role> role = roleRepo.findAll();
+		return role.stream().collect(Collectors.toMap(r -> String.valueOf(r.getRolePk()), Role::getRoleName));
 	}
 
 }
