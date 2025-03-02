@@ -224,7 +224,7 @@ public class UserServiceImpl implements UserService {
 
 	}
 
-	private String getPassword() {
+	public static String getPassword() {
 		log.info("Start method getPassword");
 		int max = 16, min = 8, pwdLength = 0;
 		int range = max - min + 1;
