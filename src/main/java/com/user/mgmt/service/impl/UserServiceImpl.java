@@ -1,13 +1,14 @@
 package com.user.mgmt.service.impl;
 
+import java.security.SecureRandom;
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.tomcat.util.bcel.classfile.Constant;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.user.mgmt.controller.UserController;
 import com.user.mgmt.dto.InitiatorTempDto;
 import com.user.mgmt.dto.UserDto;
 import com.user.mgmt.entity.InitiatorDetails;
@@ -48,15 +48,9 @@ public class UserServiceImpl implements UserService {
 	private MasterService masterService;
 	@Autowired
 	private AuthRepo authRepo;
-	
-	private int salt = 16;
-	private int hashLength = 32;
-	private int parallelism = 4;
-	private int memory = 65536;
-	private int iterations = 10;
 
-	private final Argon2PasswordEncoder encoder = new Argon2PasswordEncoder(salt, hashLength, parallelism, memory,
-			iterations);
+	private final Argon2PasswordEncoder encoder = new Argon2PasswordEncoder(Constants.SALT, Constants.HASH_LENGTH,
+			Constants.PARALLELISM, Constants.MEMORY, Constants.ITERATIONS);
 
 	@Override
 	public InitiatorTempDto saveRequest(UserDto userDto) {
@@ -186,7 +180,7 @@ public class UserServiceImpl implements UserService {
 			} else if ("Last Name".equals(row.getColumnName())) {
 				user.setLastName(row.getNewValue());
 			} else if ("Username".equals(row.getColumnName())) {
-				user.setUsername(row.getColumnName());
+				user.setUsername(row.getNewValue());
 			} else if ("Status".equals(row.getColumnName())) {
 				user.setStatus(row.getNewValue());
 			} else if ("Phone Number".equals(row.getColumnName())) {
@@ -225,68 +219,61 @@ public class UserServiceImpl implements UserService {
 	}
 
 	public static String getPassword() {
-		log.info("Start method getPassword");
-		int max = 16, min = 8, pwdLength = 0;
-		int range = max - min + 1;
-		int c = 'A';
-		int rl = 0;
-		char[] numChar = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-		char[] lwrChar = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-				's', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
-		char[] uprChar = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-				'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-		char[] splChar = { '@', '$', '#' };
-		for (int i = 0; i < min; i++) {
-			pwdLength = (int) (Math.random() * 100 % range + min);
-		}
-		char[] pw = new char[pwdLength];
-		for (int i = 0; i < pwdLength; i++) {
-			rl = (int) (Math.random() * 4);
-			switch (rl) {
-			case 0:
-				c = '0' + (int) (Math.random() * 10);
-				break;
-			case 1:
-				c = 'a' + (int) (Math.random() * 26);
-				break;
-			case 2:
-				c = 'A' + (int) (Math.random() * 26);
-				break;
-			case 3:
-				c = '@' + (int) (Math.random() * 3);
-				break;
-			}
-			pw[i] = (char) c;
+		SecureRandom random = new SecureRandom();
+		int min = 8, max = 16;
+		int length = random.nextInt((max - min) + 1) + min;
+
+		List<Character> pwd = new ArrayList<>();
+		pwd.add(Constants.LOWER.charAt(random.nextInt(Constants.LOWER.length())));
+		pwd.add(Constants.UPPER.charAt(random.nextInt(Constants.UPPER.length())));
+		pwd.add(Constants.DIGITS.charAt(random.nextInt(Constants.DIGITS.length())));
+		pwd.add(Constants.SPECIAL.charAt(random.nextInt(Constants.SPECIAL.length())));
+
+		while (pwd.size() < length) {
+			pwd.add(Constants.ALL.charAt(random.nextInt(Constants.ALL.length())));
 		}
 
-		int f2 = 0, f3 = 0, f4 = 0, f5 = 0;
-		for (int i = 0; i < pw.length; i++) {
-			for (int j = 0; j < lwrChar.length; j++) {
-				if (pw[i] == lwrChar[j]) {
-					f2 = 1;
-				}
-			}
-			for (int j = 0; j < uprChar.length; j++) {
-				if (pw[i] == uprChar[j]) {
-					f3 = 1;
-				}
-			}
-			for (int j = 0; j < numChar.length; j++) {
-				if (pw[i] == numChar[j]) {
-					f4 = 1;
-				}
-			}
-			for (int j = 0; j < splChar.length; j++) {
-				if (pw[i] == splChar[j]) {
-					f5 = 1;
-				}
-			}
-		}
-		log.info("End method getPassword method Password is: " + new String(pw));
-		if (f2 == 1 && f3 == 1 && f4 == 1 && f5 == 1) {
-			return new String(pw);
-		} else {
-			return getPassword();
-		}
+		Collections.shuffle(pwd, random);
+		StringBuilder password = new StringBuilder();
+		pwd.forEach(password::append);
+
+		log.warn("PASSWORD IS " + password.toString());
+
+		return password.toString();
 	}
+
+	// FOR NEW USER THAT DOESN'T HAVE ADMIN ACCOUNT
+	@Override
+	@Transactional
+	public UserDto createNewUser(UserDto userDto) throws ParseException {
+		if (!userRepo.existsByUsername(userDto.getUsername())) {
+			User user = modelMapper.map(userDto, User.class);
+			userRepo.save(user);
+			String password = getPassword();
+			String encoded = encoder.encode(password);
+
+			UserAuthentication auth = new UserAuthentication();
+			auth.setCreatedBy("NEW_ADMIN_USER");
+			auth.setModifiedBy("NEW_ADMIN_USER");
+			auth.setPassword(encoded);
+			auth.setUsername(user.getUsername());
+			auth.setPasswordExpiryDate(Constants.addMonth(3));
+			authRepo.save(auth);
+
+			return userDto;
+		}
+
+		return null;
+	}
+
+	@Override
+	public boolean existsByUsername(String username) {
+		boolean exists = userRepo.existsByUsername(username);
+
+		if (!exists)
+			return false;
+
+		return true;
+	}
+
 }

@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +21,7 @@ import com.user.mgmt.dto.UserDto;
 import com.user.mgmt.service.UserService;
 import com.user.mgmt.service.utils.Constants;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,22 +36,25 @@ public class UserController {
 	@Autowired
 	private UserService userService;
 
+	@SecurityRequirement(name = "Bear Authorization")
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("saveRequest")
 	public ResponseEntity<ApiResponseDto> saveRequest(@Valid @RequestBody UserDto userDto, BindingResult result) {
 		if (result.hasErrors()) {
 			Map<String, String> errors = result.getFieldErrors().stream()
 					.collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
 			log.info(String.format("Errors %s", errors));
-			return new ResponseEntity<>(ApiResponseDto.error(Constants.badStatus, "Failed!", errors),
+			return new ResponseEntity<>(ApiResponseDto.error(Constants.badStatus, "error", "Failed!", errors),
 					HttpStatus.BAD_REQUEST);
 		}
 		InitiatorTempDto map = userService.saveRequest(userDto);
 		if (map != null) {
-			return new ResponseEntity<>(ApiResponseDto.success(Constants.okStatus,
-					"Request Created with Request Id " + map.getTempPk(), Map.of("", (Object) map)),
+			return new ResponseEntity<>(
+					ApiResponseDto.success(Constants.okStatus, "success",
+							"Request Created with Request Id " + map.getTempPk(), Map.of("", (Object) map)),
 					HttpStatus.CREATED);
 		}
-		return new ResponseEntity<>(ApiResponseDto.success(Constants.dupStatus,
+		return new ResponseEntity<>(ApiResponseDto.success(Constants.dupStatus, "success",
 				"Request Already Initiated for User " + userDto.getUsername(), Map.of()), HttpStatus.CONFLICT);
 
 	}
@@ -57,8 +62,10 @@ public class UserController {
 	@PostMapping("approveRequest/{tempFk}")
 	public ResponseEntity<ApiResponseDto> approveRequest(@PathVariable Long tempFk) throws ParseException {
 		InitiatorTempDto temp = userService.approveRequest(tempFk);
-		return new ResponseEntity<>(ApiResponseDto.success(Constants.okStatus,
-				"Request Approved with Request Id " + temp.getTempPk(), Map.of("", (Object) temp)), HttpStatus.CREATED);
+		return new ResponseEntity<>(
+				ApiResponseDto.success(Constants.okStatus, "success",
+						"Request Approved with Request Id " + temp.getTempPk(), Map.of("", (Object) temp)),
+				HttpStatus.CREATED);
 	}
 
 }

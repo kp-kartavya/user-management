@@ -8,4 +8,7 @@ import com.user.mgmt.dto.UserDto;
 public interface UserService {
 	InitiatorTempDto saveRequest(UserDto userDto);
 	InitiatorTempDto approveRequest(Long tempPk) throws ParseException;
+	
+	UserDto createNewUser(UserDto userDto)  throws ParseException;
+	boolean existsByUsername(String username);
 }
