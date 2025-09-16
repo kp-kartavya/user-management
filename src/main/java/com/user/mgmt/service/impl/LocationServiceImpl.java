@@ -3,10 +3,15 @@ package com.user.mgmt.service.impl;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.cache.CacheManager;
+
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import com.user.mgmt.cache.CacheSingleton;
@@ -27,38 +32,73 @@ public class LocationServiceImpl implements LocationService {
 	@Autowired
 	private StateRepo stateRepo;
 
+	private final CacheManager cacheManager;
+
+	public LocationServiceImpl(CacheManager cacheManager) {
+		this.cacheManager = cacheManager;
+	}
+
 	private final CacheSingleton cache = CacheSingleton.getInstance();
 	@Autowired
 	private ModelMapper modelMapper;
 
-	public List<CountryDto> getAllCountries() {
-		String key = "countries";
-		if (cache.containsKey(key)) {
+	// SINGLETON CACHING
+//	@SuppressWarnings("unchecked")
+//	public List<CountryDto> getAllCountries() {
+//		String key = "countries";
+//		if (cache.containsKey(key)) {
+//			log.info("Returning countries from cache");
+//			return (List<CountryDto>) cache.get(key);
+//		}
+//
+//		log.info("Fetching countries from DB");
+//		List<Country> countries = countryRepo.findAll();
+//		List<CountryDto> countryDto = countries.stream().map(country -> modelMapper.map(country, CountryDto.class))
+//				.collect(Collectors.toList());
+//		cache.put(key, countryDto);
+//		return countryDto;
+//	}
+
+//	@SuppressWarnings("unchecked")
+//	public List<StateDto> getAllStates() {
+//		String key = "states";
+//		if (cache.containsKey(key)) {
+//			log.info("Returning states from cache");
+//			return (List<StateDto>) cache.get(key);
+//		}
+//
+//		log.info("Fetching states from DB");
+//		List<State> states = stateRepo.findAll();
+//		List<StateDto> stateDto = states.stream().map(country -> modelMapper.map(country, StateDto.class))
+//				.collect(Collectors.toList());
+//		cache.put(key, stateDto);
+//		return stateDto;
+//	}
+
+	// EHCACHE
+	@Cacheable(value = "countriesEhcache", key = "'all'")
+	public List<CountryDto> getAllCountriesEhcache() {
+		@SuppressWarnings("unchecked")
+		List<CountryDto> cached = (List<CountryDto>) cacheManager
+				.getCache("countriesEhcache", String.class, Object.class).get("countriesEhcache");
+
+		if (cached != null) {
 			log.info("Returning countries from cache");
-			return (List<CountryDto>) cache.get(key);
+			return cached;
 		}
 
-		log.info("Fetching countries from DB");
-		List<Country> countries = countryRepo.findAll();
-		List<CountryDto> countryDto = countries.stream().map(country -> modelMapper.map(country, CountryDto.class))
+		// Fallback (shouldn’t happen if preload worked)
+		List<CountryDto> countries = countryRepo.findAll().stream().map(c -> modelMapper.map(c, CountryDto.class))
 				.collect(Collectors.toList());
-		cache.put(key, countryDto);
-		return countryDto;
+
+		cacheManager.getCache("countriesEhcache", String.class, Object.class).put("countriesEhcache", countries);
+
+		return countries;
 	}
 
-	public List<StateDto> getAllStates() {
-		String key = "states";
-		if (cache.containsKey(key)) {
-			log.info("Returning states from cache");
-			return (List<StateDto>) cache.get(key);
-		}
-
-		log.info("Fetching states from DB");
-		List<State> states = stateRepo.findAll();
-		List<StateDto> stateDto = states.stream().map(country -> modelMapper.map(country, StateDto.class))
-				.collect(Collectors.toList());
-		cache.put(key, stateDto);
-		return stateDto;
+	@EventListener(ApplicationReadyEvent.class)
+	public void preloadCountries() {
+		getAllCountriesEhcache(); // triggers @Cacheable → caches automatically
+		log.info("✅ Countries preloaded into cache");
 	}
-
 }

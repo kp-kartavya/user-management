@@ -20,8 +20,8 @@ public class SingletonPreloader implements CommandLineRunner {
 	@Override
 	public void run(String... args) throws Exception {
 		log.info("Preloading cache...");
-		locationService.getAllCountries();
-		locationService.getAllStates();
+//		locationService.getAllCountries();
+//		locationService.getAllStates();
 		log.info("Cache preloaded successfully!");
 	}
 

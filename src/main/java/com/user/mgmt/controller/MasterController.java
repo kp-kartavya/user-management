@@ -46,20 +46,20 @@ public class MasterController {
 	}
 
 	// FETCHING COUTNRY FROM CACHE
-	@GetMapping("country/fetch")
-	public ResponseEntity<ApiResponseDto> fetchCountry() {
-		log.info("Inside fetchCountry controller !!");
-		List<CountryDto> countryList = locationService.getAllCountries();
-		Map<String, String> map = countryList.stream()
-				.collect(Collectors.toMap(country -> String.valueOf(country.getCountryPk()), CountryDto::getCountryName,
-						(existing, replacement) -> existing));
-		Map<String, Object> data = new HashMap<>();
-		data.put("countryList", map);
-
-		return new ResponseEntity<>(
-				ApiResponseDto.success(Constants.okStatus, "success", "Countries Fetched Successfully !!", data),
-				HttpStatus.OK);
-	}
+//	@GetMapping("country/fetch")
+//	public ResponseEntity<ApiResponseDto> fetchCountry() {
+//		log.info("Inside fetchCountry controller !!");
+//		List<CountryDto> countryList = locationService.getAllCountries();
+//		Map<String, String> map = countryList.stream()
+//				.collect(Collectors.toMap(country -> String.valueOf(country.getCountryPk()), CountryDto::getCountryName,
+//						(existing, replacement) -> existing));
+//		Map<String, Object> data = new HashMap<>();
+//		data.put("countryList", map);
+//
+//		return new ResponseEntity<>(
+//				ApiResponseDto.success(Constants.okStatus, "success", "Countries Fetched Successfully !!", data),
+//				HttpStatus.OK);
+//	}
 
 	// STATE CONTROLLER
 	@PostMapping("state/save")
@@ -71,19 +71,19 @@ public class MasterController {
 	}
 
 	// FETCHING STATE FROM CACHE
-	@GetMapping("state/fetch")
-	public ResponseEntity<ApiResponseDto> fetchState() {
-		log.info("Inside fetchState controller !!");
-		List<StateDto> stateList = locationService.getAllStates();
-		Map<String, String> map = stateList.stream()
-				.collect(Collectors.toMap(state -> String.valueOf(state.getStatePk()), StateDto::getStateName,
-						(existing, replacement) -> existing));
-		Map<String, Object> data = new HashMap<>();
-		data.put("stateList", map);
-
-		return new ResponseEntity<>(ApiResponseDto.success(Constants.okStatus, "success",
-				"States Fetched Successfully !!", Map.of("stateList", (Object) map)), HttpStatus.OK);
-	}
+//	@GetMapping("state/fetch")
+//	public ResponseEntity<ApiResponseDto> fetchState() {
+//		log.info("Inside fetchState controller !!");
+//		List<StateDto> stateList = locationService.getAllStates();
+//		Map<String, String> map = stateList.stream()
+//				.collect(Collectors.toMap(state -> String.valueOf(state.getStatePk()), StateDto::getStateName,
+//						(existing, replacement) -> existing));
+//		Map<String, Object> data = new HashMap<>();
+//		data.put("stateList", map);
+//
+//		return new ResponseEntity<>(ApiResponseDto.success(Constants.okStatus, "success",
+//				"States Fetched Successfully !!", Map.of("stateList", (Object) map)), HttpStatus.OK);
+//	}
 
 	@GetMapping("state/fetch/{countryFk}")
 	public ResponseEntity<ApiResponseDto> fetchByCountryFk(@PathVariable Long countryFk) {
@@ -110,5 +110,20 @@ public class MasterController {
 
 		return new ResponseEntity<>(ApiResponseDto.success(Constants.okStatus, "success",
 				"Roles Fetched Successfully !!", Map.of("roleList", (Object) roles)), HttpStatus.OK);
+	}
+	
+	@GetMapping("country/fetchEhcache")
+	public ResponseEntity<ApiResponseDto> fetchCountryEhcache() {
+		log.info("Inside fetchCountry controller !!");
+		List<CountryDto> countryList = locationService.getAllCountriesEhcache();
+		Map<String, String> map = countryList.stream()
+				.collect(Collectors.toMap(country -> String.valueOf(country.getCountryPk()), CountryDto::getCountryName,
+						(existing, replacement) -> existing));
+		Map<String, Object> data = new HashMap<>();
+		data.put("countryList", map);
+
+		return new ResponseEntity<>(
+				ApiResponseDto.success(Constants.okStatus, "success", "Countries Fetched Successfully !!", data),
+				HttpStatus.OK);
 	}
 }
